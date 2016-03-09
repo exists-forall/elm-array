@@ -15,10 +15,3 @@ whileJust f init =
   case f init of
     Just (result, new) -> result :: whileJust f new
     Nothing -> []
-
---findIndex : (Int -> Maybe Bool) -> Int -> Maybe Int
---findIndex condition i =
---  case condition of
---    Just True -> Just i
---    Just False -> findIndex condition (i + 1)
---    Nothing -> Nothing
