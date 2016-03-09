@@ -10,7 +10,6 @@ module NaiveTable
   , append
   
   , get
-  --, concatSlice
   , set
 
   , push
@@ -18,8 +17,6 @@ module NaiveTable
   , pushManyFrom
   , pushTake
 
-  --, redistribute
-  
   , length
 
   , map
@@ -92,14 +89,6 @@ set : Int -> a -> Table a -> Table a
 set i newItem =
   toList >> set' i newItem >> fromList
 
---push' : a -> List a -> List a
---push' x =
---  flip (++) [x]
-
---push : a -> Table a -> Table a
---push x =
---  toList >> push' x >> fromList
-
 push' : a -> List a -> List a
 push' x =
   flip (++) [x]
@@ -138,17 +127,6 @@ foldr : (a -> b -> b) -> b -> Table a -> b
 foldr f init =
   toList >> List.foldr f init
 
---mapAccumL' : (a -> b -> (b, c)) -> b -> List a -> (b, List c)
---mapAccumL' f init list =
---  case list of
---    [] -> (init, [])
---    (x :: xs) ->
---      let
---        (xAccum, xMapped) = f x init
---        (finalAccum, xsMapped) = mapAccumL' f xAccum xs
---      in
---        (finalAccum, xMapped :: xsMapped)
-
 mapAccumL : (a -> b -> (b, c)) -> b -> Table a -> (b, Table c)
 mapAccumL f init (Table list) =
   let (accum, mappedList) = ListUtils.mapAccumL f init list
@@ -171,12 +149,6 @@ findIndex : (a -> Bool) -> Table a -> Maybe Int
 findIndex condition =
   toList >> findIndex' condition
 
---redistribute : Int -> (Table a, Table a) -> (Table a, Table a)
---redistribute leftCount (Table list1) (Table list2) =
---  list1 ++ list2
---  |> ListUtils.splitAt leftCount
---  |> TupleUtils.mapBoth fromList
-
 splitAndRequireNonEmpty : Int -> List a -> Maybe (List a, List a)
 splitAndRequireNonEmpty size list =
   case ListUtils.splitAt size list of
@@ -197,10 +169,3 @@ redistributeMany size tables =
 append : Table a -> Table a -> Table a
 append (Table list1) (Table list2) =
   fromList (list1 ++ list2)
-
---concatSlice : Int -> Int -> Table a -> Table a -> Table a
---concatSlice lowerInclusive upperExclusive (Table list1) (Table list2) =
---  list1 ++ list2
---  |> List.drop lowerInclusive
---  |> List.take (upperExclusive - lowerInclusive)
---  |> fromList

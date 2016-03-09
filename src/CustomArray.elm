@@ -199,12 +199,6 @@ subarraysToNode subarrays =
   in
     Node { children = children, height = nodeHeight }
 
---untilJust : (a -> Maybe b) -> (a -> a) -> a -> b
---untilJust condition f init =
---  case condition init of
---    Just result -> result
---    Nothing -> untilJust condition f (f init)
-
 subarraysToNodes : List (Array a) -> List (Array a)
 subarraysToNodes subarrays =
   List.map subarraysToNode (chunk subarrays)
@@ -320,13 +314,6 @@ append' : (Array a, Array a)-> (Array a, Array a)
 append' arrays =
   case arrays of
     (Leaf _, Leaf _) ->
-      --if Table.length leaf1 + Table.length leaf2 <= maximumSearchError * maximumBranching
-      --  then
-      --    (leaf1, leaf2)
-      --    |> Table.redistribute maximumBranching
-      --    |> TupleUtils.mapBoth Leaf
-      --  else
-      --    arrays
       arrays
 
     (Node node1, Node node2) ->
@@ -381,16 +368,6 @@ type alias SearchErrorAnalysis =
   , totalShallowCount : Int
   , lastErrorCrossing : Maybe ErrorCrossing
   }
-
---tableIndexedFoldl : (Int -> a -> b -> b) -> b -> Table a -> b
---tableIndexedFoldl f init =
-  --Table.foldl (\x (i, accum) -> (i + 1, f i x accum)) (0, init)
-
---accumulateSearchError : Int -> Array a -> SearchErrorAnalysis -> SearchErrorAnalysis
---accumulateSearchError i subarray prevAnalysis =
---  let
---    oldSearchError = prevAnalysis.totalShallowCount - i * 
---    newTotalShallowCount = prevAnalysis.totalShallowCount + shallowCount subarray
 
 isNewErrorCrossing : Maybe Int -> Int -> Bool
 isNewErrorCrossing oldError newError =
@@ -518,29 +495,10 @@ appendCorrespondingNodes (node1, node2) =
       in
         redistributeChildren (newLeft, newRight)
 
---type alias RedistributionSetup a =
---  { subarrays : Table (Array a)
---  , height : Int
---  }
-
---redistributeSubarrays : Int -> (Int -> Array a) -> Maybe (Array a, Array a)
---redistributeSubarrays { subarrays, height } =
-
 -- TODO: Needs cleanup, optimization
 redistributeChildren : (NodeData a, NodeData a) -> (Array a, Array a)
 redistributeChildren (node1, node2) =
   let
-    --bottomRight =
-    --  node.children
-    --  |> Table.get (Table.length node.children - 1)
-    --  |> assumeJust "node1.children is nonEmpty"
-    --  |> .array
-
-    --bottomLeft =
-    --  node.children
-    --  |> Table.get (Table.length node.children - 1)
-    --  |> assumeJust "node2.children is nonEmpty"
-
     firstWithRoom = Table.findIndex hasRoom node1.children
     errorAnalysis = analyzeSearchError (node1, node2) |> Debug.log "errorAnalysis"
   in
@@ -587,28 +545,3 @@ getConcat tab1 tab2 i =
   if i < Table.length tab1
     then Table.get i tab1
     else Table.get (i - Table.length tab1) tab2
-
----- I don't know if the Elm compiler does common sub-expression elimination, so this may need to be optimized
---getConcat3 : Table a -> Table a -> Table a -> Int -> Maybe a
---getConcat3 tab1 tab2 tab3 i =
---  if i < Table.length tab1
---    then Table.get i tab1
---    else
---      if i - Table.length tab1 < Table.length tab2
---        then Table.get (i - Table.length tab1) tab2
---        else Table.get (i - Table.length tab1 - Table.length tab2) tab3
-
---findLastToRedistribute : (Int -> Maybe (Child a)) -> Int -> Maybe Int
---findLastToRedistribute getter numChildren =
---  let
---    idealError = numChildren 
---    recurse i error =
---      case getter i of
---        Just child ->
---          let newError = error + toFloat (shallowCount child) / toFloat maximumBranching
-
---appendCorrespondingNodes : (Node a, Node a) -> (Node a, Node a)
---appendCorrespondingNodes (node1, node2) =
---  let
---    firstWithRoom = ControlUtils.findIndex (getConcat node1.children node2.children >> Maybe.map hasRoom) 0
---    lastToRedistribute = ControlUtils.findIndex 
