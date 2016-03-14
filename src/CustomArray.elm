@@ -20,6 +20,9 @@ module CustomArray
   , toList
   , toIndexedList
 
+  , dropLeftOf
+  , dropRightOf
+
   , visualize
   ) where
 
@@ -320,8 +323,8 @@ initialize len f =
             child i =
               let bounds = childBounds i
               in
-                { startIndex = fst bounds
-                , endIndex = snd bounds
+                { startIndex = fst bounds - startIndex
+                , endIndex = snd bounds - startIndex -- snd bounds
                 , array = recurse (height - 1) bounds
                 }
             children = Table.initialize child childCount
@@ -668,20 +671,120 @@ getConcat tab1 tab2 i =
     then Table.get i tab1
     else Table.get (i - Table.length tab1) tab2
 
+dropLeftOf : Int -> Array a -> Array a
+dropLeftOf i array =
+  if i <= 0
+    then array
+    else case array of
+      Node node ->
+        let
+          (childToSplitI, childToSplit) = getChildContainingIndex i node |> assumeJust ""
+          splitIndexWithinChild = i - Debug.log "startIndex" childToSplit.startIndex
+          _ = Debug.log "within child" splitIndexWithinChild
+          splitChild = { childToSplit | array = dropLeftOf splitIndexWithinChild childToSplit.array }
+          getNewChildAt childI =
+            let child =
+              if childI == 0
+                then splitChild
+                else Table.get (childI + childToSplitI) node.children |> assumeJust ""
+            in
+              { child
+              | startIndex = max 0 (child.startIndex - i)
+              , endIndex = child.endIndex - i
+              }
+        in
+          Node { node | children = Table.initialize getNewChildAt (Table.length node.children - childToSplitI) }
+
+      Leaf leaf ->
+        Table.initialize
+          (\j -> Table.get (j + i) leaf |> assumeJust "")
+          (Table.length leaf - Debug.log "leaf i" i)
+        |> Leaf
+
+dropRightOf : Int -> Array a -> Array a
+dropRightOf i array =
+  if i >= length array
+    then array
+    else case array of
+      Node node ->
+        let
+          (childToSplitI, childToSplit) = getChildContainingIndex i node |> assumeJust ""
+          splitIndexWithinChild = i - childToSplit.startIndex
+          splitChild =
+            { childToSplit 
+            | array = dropRightOf splitIndexWithinChild childToSplit.array
+            , endIndex = i
+            }
+          getNewChildAt childI =
+            if childI == childToSplitI
+              then splitChild
+              else Table.get childI node.children |> assumeJust ""
+        in
+          Node { node | children = Table.initialize getNewChildAt (childToSplitI + 1) }
+
+      Leaf leaf ->
+        Leaf (Table.initialize (\j -> Table.get j leaf |> assumeJust "") i)
+
+--slice : Int -> Int -> Array a
+--slice startIndex endIndex array =
+--  case array of
+--    Node node ->
+      
+
+--dropRightOf : Int -> Array a -> Array a
+--dropRightOf i array =
+--  if i == 0
+--    then array
+--    else case array of
+--      Node node ->
+--        let
+--          (childToSplitI, childToSplit) = getChildContainingIndex i node |> assumeJust ""
+--          splitIndexWithinChild = i - childToSplit.startIndex
+--          splitChild = { childToSplit | array = dropRightOf splitIndexWithinChild childToSplit.array }
+--          getNewChildAt childI =
+--            let child =
+--              if childI == 0
+--                then splitChild
+--                else Table.get (childI + childToSplitI) node.children |> assumeJust ""
+--            in
+--              { child
+--              | startIndex = child.startIndex - i
+--              , endIndex = child.endIndex - i
+--              }
+--        in
+--          Node { node | children = Table.initialize getNewChildAt (Table.length node.children - childToSplitI) }
+
+--      Leaf leaf ->
+--        Table.initialize
+--          (\j -> Table.get (j + i) leaf |> assumeJust "")
+--          (Table.length leaf - i)
+--        |> Leaf
+
+visualizeChild : Child a -> Html
+visualizeChild child =
+  let arrayViz = visualizeArray child.array
+  in
+    [ Html.text ("[" ++ toString child.startIndex ++ ".." ++ toString child.endIndex ++ "] ") ]
+    |> flip (++) arrayViz
+    |> Html.div [Attrs.style [("margin", "20px")]]
+
 -- Debug visualization:
-visualize : Array a -> Html
-visualize array =
+visualizeArray : Array a -> List Html
+visualizeArray array =
   case array of
     Node node ->
-      Html.div [Attrs.style [("margin", "20px")]]
+      --Html.div [Attrs.style [("margin", "20px")]]
         [ Html.span [Attrs.style [("font-weight", "bold")]] [Html.text "Node "]
         , Html.text ("(" ++ toString node.height ++ ")")
         , Html.div [Attrs.style [("border-left", "solid")]]
-          (List.map (visualize << .array) (Table.toList node.children))
+          (List.map visualizeChild (Table.toList node.children))
         ]
 
     Leaf leaf ->
-      Html.div [Attrs.style [("margin", "20px")]] -- (List.map (Html.text << (\s -> " " ++ s ++ " ") << toString) (Table.toList leaf))
+      --Html.div [Attrs.style [("margin", "20px")]] -- (List.map (Html.text << (\s -> " " ++ s ++ " ") << toString) (Table.toList leaf))
         [ Html.span [Attrs.style [("font-weight", "bold")]] [Html.text "Leaf "]
         , Html.text (toString (Table.toList leaf))
         ]
+
+visualize : Array a -> Html
+visualize = Html.div [Attrs.style [("margin", "20px")]] << visualizeArray

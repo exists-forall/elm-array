@@ -23,7 +23,19 @@ import CustomArray as Array exposing (Array)
 
 main =
   --Array.initialize 25 identity
-  --|> Array.dropLeftOf 1
-  --|> Array.visualize
-  Array.append (Array.fromList [1..10]) (Array.fromList [101..111])
+  --Array.append (Array.fromList [0..24]) (Array.fromList [25..49])
+
+  Array.initialize 25 identity
+  |> Array.dropRightOf 18
   |> Array.visualize
+  --|> Array.visualize
+  
+  --|> Array.dropLeftOf 2
+  --|> Array.visualize
+
+  --|> Array.get 17
+  --|> toString
+  --|> Html.text
+  
+  --Array.append (Array.fromList [1..10]) (Array.fromList [101..111])
+  --|> Array.visualize
