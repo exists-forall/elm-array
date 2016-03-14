@@ -1,7 +1,6 @@
 module ControlUtils
   ( untilJust
   , whileJust
-  --, findIndex
   ) where
 
 untilJust : (a -> Maybe b) -> (a -> a) -> a -> b

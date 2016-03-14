@@ -1,4 +1,27 @@
-module CustomArray where
+module CustomArray
+  ( Array
+  , empty
+  , initialize
+  , repeat
+  , fromList
+  , isEmpty
+  , length
+  , get
+  , set
+  , append
+  , map
+  , mapAccumL -- new!
+  , indexedMap
+  , foldl
+  , foldr
+  , filter
+  , pushMany -- new!
+  , push
+  , toList
+  , toIndexedList
+
+  , visualize
+  ) where
 
 import Bitwise
 
@@ -7,6 +30,10 @@ import Assume exposing (assumeJust)
 import ListUtils
 import TupleUtils
 import ControlUtils
+
+-- for visualization:
+import Html exposing (Html)
+import Html.Attributes as Attrs
 
 type alias NodeData a =
   { height : Int
@@ -54,6 +81,9 @@ maximumBranching = 2^maximumBranchingPo2 -- inclusive bound
 maximumSearchError : Int
 maximumSearchError = 1 -- 2
 
+empty : Array a
+empty = Leaf (Table.fromList [])
+
 -- note: always returns `Nothing` for negative indices
 findFrom : (a -> Bool) -> Int -> Table a -> Maybe (Int, a)
 findFrom condition i table =
@@ -81,6 +111,10 @@ length array =
 
     Leaf leaf ->
       Table.length leaf
+
+isEmpty : Array a -> Bool
+isEmpty =
+  length >> (==) 0 -- TODO: This might warrant being special-cased for performance reasons
 
 get : Int -> Array a -> Maybe a
 get i array =
@@ -160,6 +194,49 @@ foldr f init array =
     Leaf leaf ->
       Table.foldr f init leaf
 
+filter : (a -> Bool) -> Array a -> Array a
+filter condition =
+  let
+    accumulate x =
+      if condition x
+        then push x
+        else identity
+  in
+    foldl accumulate empty
+
+mapAccumL : (a -> b -> (b, c)) -> b -> Array a -> (b, Array c)
+mapAccumL f init array =
+  case array of
+    Node node ->
+      let
+        foldChild child accum =
+          let (newAccum, mapped) = mapAccumL f accum child.array
+          in (newAccum, { child | array = mapped })
+      in
+        let (accum, mapped) = Table.mapAccumL foldChild init node.children
+        in (accum, Node { node | children = mapped })
+
+    Leaf leaf ->
+      let (accum, mapped) = Table.mapAccumL f init leaf
+      in (accum, Leaf mapped)
+
+indexedMap : (Int -> a -> b) -> Array a -> Array b
+indexedMap f =
+  let accumulate x i = (i + 1, f i x)
+  in snd << mapAccumL accumulate 0
+
+toList : Array a -> List a
+toList =
+  foldr (::) []
+
+accumIndexedList : a -> (Int, List (Int, a)) -> (Int, List (Int, a))
+accumIndexedList x (i, xs) =
+  (i - 1, (i - 1, x) :: xs)
+
+toIndexedList : Array a -> List (Int, a)
+toIndexedList array =
+  snd (foldr accumIndexedList (length array, []) array)
+
 chunk : List a -> List (Table a)
 chunk list =
   case list of
@@ -217,6 +294,47 @@ fromList list =
   |> List.map Leaf
   |> ControlUtils.untilJust toSingleRoot subarraysToNodes
 
+heightForLength : Int -> Int
+heightForLength i =
+  if i <= 1
+    then 0
+    else 1 + heightForLength (i // maximumBranching)
+
+initialize : Int -> (Int -> a) -> Array a
+initialize len f =
+  let
+    --recurse : Int -> (Int, Int) -> Array a
+    recurse height (startIndex, endIndex) =
+      if height == 0
+        then Leaf (Table.initialize (\i -> f (i + startIndex)) (endIndex - startIndex))
+        else
+          let
+            _ = Debug.log "height" height
+            _ = Debug.log "bounds" (startIndex, endIndex)
+            childLength = Bitwise.shiftLeft 1 (maximumBranchingPo2 * height)
+            childCount = ceiling (toFloat (endIndex - startIndex) / toFloat childLength)
+            childBounds i =
+              ( i * childLength + startIndex
+              , min ((i + 1) * childLength + startIndex) endIndex
+              )
+            child i =
+              let bounds = childBounds i
+              in
+                { startIndex = fst bounds
+                , endIndex = snd bounds
+                , array = recurse (height - 1) bounds
+                }
+            children = Table.initialize child childCount
+          in
+            Node { height = height, children = children }
+  in
+    recurse (heightForLength len) (0, len) 
+              
+repeat : Int -> a -> Array a
+repeat count item =
+  initialize count (always item) -- TODO: This may warrant being special-cased for performance
+  -- in particular, this function can theoretically reuse many of its recursive results, resulting in O(log n) performance as opposed to the current O(n log n) (?) performance
+
 type alias PushResult a =
   { extended : Array a
   , overflowed : List (Array a)
@@ -273,6 +391,10 @@ pushMany newItems array =
       toSingleRoot
       subarraysToNodes
       (subresult.extended :: subresult.overflowed)
+
+push : a -> Array a -> Array a
+push newItem =
+  pushMany [newItem] -- TODO: this might warrant being special-cased for performance reasons
 
 append : Array a -> Array a -> Array a
 append array1 array2 =
@@ -545,3 +667,21 @@ getConcat tab1 tab2 i =
   if i < Table.length tab1
     then Table.get i tab1
     else Table.get (i - Table.length tab1) tab2
+
+-- Debug visualization:
+visualize : Array a -> Html
+visualize array =
+  case array of
+    Node node ->
+      Html.div [Attrs.style [("margin", "20px")]]
+        [ Html.span [Attrs.style [("font-weight", "bold")]] [Html.text "Node "]
+        , Html.text ("(" ++ toString node.height ++ ")")
+        , Html.div [Attrs.style [("border-left", "solid")]]
+          (List.map (visualize << .array) (Table.toList node.children))
+        ]
+
+    Leaf leaf ->
+      Html.div [Attrs.style [("margin", "20px")]] -- (List.map (Html.text << (\s -> " " ++ s ++ " ") << toString) (Table.toList leaf))
+        [ Html.span [Attrs.style [("font-weight", "bold")]] [Html.text "Leaf "]
+        , Html.text (toString (Table.toList leaf))
+        ]
