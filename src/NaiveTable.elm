@@ -15,7 +15,6 @@ module NaiveTable
   , push
   , pushMany
   , pushManyFrom
-  , pushTake
 
   , length
 
