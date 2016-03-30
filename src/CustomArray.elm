@@ -19,9 +19,7 @@ module CustomArray
   , push
   , toList
   , toIndexedList
-
-  , dropLeftOf
-  , dropRightOf
+  , slice
 
   , visualize
   ) where
@@ -671,94 +669,79 @@ getConcat tab1 tab2 i =
     then Table.get i tab1
     else Table.get (i - Table.length tab1) tab2
 
-dropLeftOf : Int -> Array a -> Array a
-dropLeftOf i array =
-  if i <= 0
-    then array
-    else case array of
+{- This doesn't rebalance, but according to
+http://infoscience.epfl.ch/record/169879/files/RMTrees.pdf page 6
+and http://hypirion.com/thesis.pdf page 47,
+this is acceptable, even though it may break the RRB tree invariant.
+The worst case scenario here is truly shocking:
+"In the worst case, one can request a slice containing two nodes, which still
+has the same height of the original tree." (L'orange 47)
+
+additional notes for slice':
+- Unlike slice, does not apply drillPastSingleParents; if that were done at
+  every recursive step, it would break the equal-heights invariants
+- Unlike slice, endIndex is INCLUSIVE; the range is [startIndex, endIndex],
+  NOT [startIndex, endIndex)
+-}
+slice' : Int -> Int -> Array a -> Array a
+slice' startIndex endIndex array =
+  if startIndex > endIndex
+  then empty
+  else if startIndex <= 0 && endIndex >= length array - 1
+  then array
+  else
+    let
+      -- SHADOW startIndex and endIndex with their normalized versions, to
+      -- prevent any accidental use of the unnormalized versions.
+      startIndex = Debug.log "startIndex" <| max startIndex 0
+      endIndex = Debug.log "endIndex" <| min endIndex (Debug.log "length" <| length array - 1)
+    in case array of
       Node node ->
         let
-          (childToSplitI, childToSplit) = getChildContainingIndex i node |> assumeJust ""
-          splitIndexWithinChild = i - Debug.log "startIndex" childToSplit.startIndex
-          _ = Debug.log "within child" splitIndexWithinChild
-          splitChild = { childToSplit | array = dropLeftOf splitIndexWithinChild childToSplit.array }
-          getNewChildAt childI =
-            let child =
-              if childI == 0
-                then splitChild
-                else Table.get (childI + childToSplitI) node.children |> assumeJust ""
+          childSplitLeft = getChildContainingIndex startIndex node |> assumeJust "a" |> fst
+          childSplitRight = getChildContainingIndex endIndex node |> assumeJust "b" |> fst
+          getNewChildAt i =
+            let
+              child = Table.get (i + childSplitLeft) node.children |> assumeJust "c"
+              newChildArray = slice'
+                (startIndex - child.startIndex)
+                (endIndex - child.startIndex)
+                child.array
             in
-              { child
-              | startIndex = max 0 (child.startIndex - i)
-              , endIndex = child.endIndex - i
+              { array = newChildArray
+              , startIndex = max (child.startIndex - startIndex) 0
+              , endIndex = min (child.endIndex - startIndex) (endIndex + 1)
               }
+          newChildren = Table.initialize getNewChildAt (childSplitRight - childSplitLeft + 1)
         in
-          Node { node | children = Table.initialize getNewChildAt (Table.length node.children - childToSplitI) }
-
+          Node { node | children = newChildren }
+  
       Leaf leaf ->
         Table.initialize
-          (\j -> Table.get (j + i) leaf |> assumeJust "")
-          (Table.length leaf - Debug.log "leaf i" i)
+          (\i -> Table.get (i + startIndex) leaf |> assumeJust "d")
+          (endIndex - startIndex + 1)
         |> Leaf
 
-dropRightOf : Int -> Array a -> Array a
-dropRightOf i array =
-  if i >= length array
-    then array
-    else case array of
-      Node node ->
-        let
-          (childToSplitI, childToSplit) = getChildContainingIndex i node |> assumeJust ""
-          splitIndexWithinChild = i - childToSplit.startIndex
-          splitChild =
-            { childToSplit 
-            | array = dropRightOf splitIndexWithinChild childToSplit.array
-            , endIndex = i
-            }
-          getNewChildAt childI =
-            if childI == childToSplitI
-              then splitChild
-              else Table.get childI node.children |> assumeJust ""
-        in
-          Node { node | children = Table.initialize getNewChildAt (childToSplitI + 1) }
+slice : Int -> Int -> Array a -> Array a
+slice startIndex endIndex array =
+  slice' startIndex (endIndex - 1) array
+  |> drillPastSingleParents
 
-      Leaf leaf ->
-        Leaf (Table.initialize (\j -> Table.get j leaf |> assumeJust "") i)
+drillPastSingleParents : Array a -> Array a
+drillPastSingleParents array =
+  case array of
+    Node node ->
+      if Table.length node.children == 1
+        then
+          node.children
+          |> Table.get 0
+          |> assumeJust ""
+          |> .array
+          |> drillPastSingleParents
+        else
+          array
 
---slice : Int -> Int -> Array a
---slice startIndex endIndex array =
---  case array of
---    Node node ->
-      
-
---dropRightOf : Int -> Array a -> Array a
---dropRightOf i array =
---  if i == 0
---    then array
---    else case array of
---      Node node ->
---        let
---          (childToSplitI, childToSplit) = getChildContainingIndex i node |> assumeJust ""
---          splitIndexWithinChild = i - childToSplit.startIndex
---          splitChild = { childToSplit | array = dropRightOf splitIndexWithinChild childToSplit.array }
---          getNewChildAt childI =
---            let child =
---              if childI == 0
---                then splitChild
---                else Table.get (childI + childToSplitI) node.children |> assumeJust ""
---            in
---              { child
---              | startIndex = child.startIndex - i
---              , endIndex = child.endIndex - i
---              }
---        in
---          Node { node | children = Table.initialize getNewChildAt (Table.length node.children - childToSplitI) }
-
---      Leaf leaf ->
---        Table.initialize
---          (\j -> Table.get (j + i) leaf |> assumeJust "")
---          (Table.length leaf - i)
---        |> Leaf
+    Leaf _ -> array
 
 visualizeChild : Child a -> Html
 visualizeChild child =
