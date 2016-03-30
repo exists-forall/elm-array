@@ -42,15 +42,13 @@ type alias NodeData a =
   }
 {- informal invariants (in Elm pseudocode):
 
-- `node.height == 1 + max (map height node.children)`
+- `node.height == 1 + height child` for all `child` in `node.children`
 
-- `(get i node.children).startIndex == sum (length (get j node.children)) for 0 <= j < i`
+- `(get i node.children).startIndex == sum (length (get j node.children)) for 0 <= j < i` for all `0 <= i < length node.children`
 
-- `(get i node.children).endIndex == sum (length (get j node.children)) for 0 <= j <= i`
+- `child.endIndex == child.startIndex + length child` for all `child` in `node.children`
 
--- `minimumBranching <= length node.children <= maximumBranching` (NOT SATISFIED)
-
-- `length node.children > 0`
+- `length node.children > 1`
 -}
 
 type alias Child a =
