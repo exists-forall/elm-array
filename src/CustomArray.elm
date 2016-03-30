@@ -110,8 +110,10 @@ length array =
       Table.length leaf
 
 isEmpty : Array a -> Bool
-isEmpty =
-  length >> (==) 0 -- TODO: This might warrant being special-cased for performance reasons
+isEmpty array =
+  case array of
+    Leaf leaf -> Table.length leaf == 0
+    Node _ -> False
 
 get : Int -> Array a -> Maybe a
 get i array =
@@ -605,7 +607,7 @@ appendCorrespondingNodes (node1, node2) =
             (\i ->
               if i == 0
                 then newLeftmostRight
-                else Table.get i node2.children |> assumeJust "" |> .array)
+                else Table.get i node2.children |> assumeJust "0 <= i < length node2.children" |> .array)
             (Table.length node2.children)
 
         newRight = { node2 | children = subarraysToChildren newRightSubarrays }
@@ -625,9 +627,13 @@ redistributeChildren (node1, node2) =
           getFromOriginal = getConcat node1.children node2.children >> Maybe.map .array
 
           toRedistribute =
-            Table.initialize (\i -> getFromOriginal (i + first) |> assumeJust "") (last + 1 - first)
+            Table.initialize
+              (\i ->
+                getFromOriginal (i + first)
+                |> assumeJust "0 <= i < (last + 1 - first), so first <= (i + first) <= last")
+              (last + 1 - first)
 
-          redistributed = redistributeSubarrays node1.height toRedistribute -- Table.redistributeMany maximumBranching toRedistribute
+          redistributed = redistributeSubarrays node1.height toRedistribute
 
           getFromCombined i =
             if i < first
@@ -646,8 +652,17 @@ redistributeChildren (node1, node2) =
           toLeft = min maximumBranching totalCount
           toRight = totalCount - toLeft
 
-          newLeftSubarrays = Table.initialize (getFromCombined >> assumeJust "") toLeft
-          newRightSubarrays = Table.initialize (flip (+) toLeft >> getFromCombined >> assumeJust "") toRight
+          newLeftSubarrays = Table.initialize
+            (\i ->
+              getFromCombined i
+              |> assumeJust "0 <= i < toLeft, so 0 <= i < (min maximumBranching totalCount), so 0 <= i < totalCount")
+            toLeft
+
+          newRightSubarrays = Table.initialize
+            (\i ->
+              getFromCombined (i + toLeft)
+              |> assumeJust "0 <= i < toRight, so 0 <= i < (totalCount - toLeft), so toLeft <= (i + toLeft) < totalCount")
+            toRight
         in
           (subarraysToNode newLeftSubarrays, subarraysToNode newRightSubarrays)
 
@@ -690,11 +705,53 @@ slice' startIndex endIndex array =
     in case array of
       Node node ->
         let
-          childSplitLeft = getChildContainingIndex startIndex node |> assumeJust "" |> fst
-          childSplitRight = getChildContainingIndex endIndex node |> assumeJust "" |> fst
+          childSplitLeft =
+            getChildContainingIndex startIndex node
+            |> assumeJust """
+                startIndex = max oldStartIndx 0
+                && endIndex = min oldEndIndex (length array - 1)
+                && startIndex <= endIndex
+                so
+                0 <= startIndex <= endIndex <= length array - 1
+                so
+                0 <= startIndex < length array
+              """
+            |> fst
+
+          childSplitRight =
+            getChildContainingIndex endIndex node
+            |> assumeJust """
+                startIndex = max oldStartIndx 0
+                && endIndex = min oldEndIndex (length array - 1)
+                && startIndex <= endIndex
+                so
+                0 <= startIndex <= endIndex <= length array - 1
+                so
+                0 <= endIndex < length array
+              """
+            |> fst
+
           getNewChildAt i =
             let
-              child = Table.get (i + childSplitLeft) node.children |> assumeJust ""
+              child =
+                Table.get (i + childSplitLeft) node.children
+                |> assumeJust """
+                    i comes from a call to Table.initialize with size
+                    (childSplitRight - childSplitLeft + 1)
+                    so
+                    0 <= i < (childSplitRight - childSplitLeft + 1)
+                    so
+                    childSplitLeft <= (i + childSplitLeft) <= childSplitRight
+                    additionally,
+                    childSplitLeft and childSplitRight were both produced by
+                    calls to getChildContainingIndex, so
+                    childSplitLeft >= 0
+                    and
+                    childSplitRight < length node.children
+                    so
+                    0 <= (i + childSplitLeft) < (length node.children)
+                  """
+
               newChildArray = slice'
                 (startIndex - child.startIndex)
                 (endIndex - child.startIndex)
@@ -710,7 +767,17 @@ slice' startIndex endIndex array =
   
       Leaf leaf ->
         Table.initialize
-          (\i -> Table.get (i + startIndex) leaf |> assumeJust "")
+          (\i ->
+            Table.get (i + startIndex) leaf
+            |> assumeJust """
+                0 <= i < endIndex - startIndex + 1
+                so
+                startIndex <= (i + startIndex) < endIndex + 1
+                additionally
+                0 <= startIndex <= endIndex <= length array - 1
+                so
+                0 <= (i + startIndex) < length array
+              """)
           (endIndex - startIndex + 1)
         |> Leaf
 
@@ -727,7 +794,7 @@ drillPastSingleParents array =
         then
           node.children
           |> Table.get 0
-          |> assumeJust ""
+          |> assumeJust "length node.children == 1"
           |> .array
           |> drillPastSingleParents
         else
