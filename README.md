@@ -30,7 +30,7 @@ This repository currently includes a 100% API-compatible reimplementation of `Ar
 - [X] Implement every function in the existing `Array` API
 - [X] Reimplement `NaiveTable` in Javascript
 - [ ] Address every `TODO` comment in the codebase
-- [ ] Add justifications for every `assumeJust` call in the codebase, for use as both comments and potential error messages
+- [X] Add justifications for every `assumeJust` call in the codebase, for use as both comments and potential error messages
 - [ ] For debug purposes: write a function to test if tree conforms to invariants, routinely call this function after every tree operation, and raise an error / log a warning if an invariant is broken.
 
 ### Larger, open-ended tasks:
