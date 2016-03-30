@@ -60,18 +60,16 @@ type alias Child a =
   }
 {- This stores redundant start AND end index information for each child,
 whereas the native implementation stores only the end index.  This method is
-more less memory efficient, but has the advance of involving less
-index arithmetic when getting start and end indices (no need to look ahead/
-behind the child in question, with a special case for the first child).  For now, I am judging the gains in readability and simplicity to outweigh the
-small performance penalty. -}
+less memory efficient, but has the advance of involving less index arithmetic
+when getting start and end indices (no need to look ahead/behind the child in
+question, with a special case for the first child).  For now, I am judging the
+gains in readability and simplicity to outweigh the small performance penalty.
+-}
 
 
 type Array a
   = Node (NodeData a)
   | Leaf (Table a)
-
---minimumBranching : Int
---minimumBranching = 2 -- 30 -- inclusive bound
 
 maximumBranchingPo2 : Int
 maximumBranchingPo2 = 2 -- 5
@@ -756,7 +754,6 @@ visualizeArray : Array a -> List Html
 visualizeArray array =
   case array of
     Node node ->
-      --Html.div [Attrs.style [("margin", "20px")]]
         [ Html.span [Attrs.style [("font-weight", "bold")]] [Html.text "Node "]
         , Html.text ("(" ++ toString node.height ++ ")")
         , Html.div [Attrs.style [("border-left", "solid")]]
@@ -764,7 +761,6 @@ visualizeArray array =
         ]
 
     Leaf leaf ->
-      --Html.div [Attrs.style [("margin", "20px")]] -- (List.map (Html.text << (\s -> " " ++ s ++ " ") << toString) (Table.toList leaf))
         [ Html.span [Attrs.style [("font-weight", "bold")]] [Html.text "Leaf "]
         , Html.text (toString (Table.toList leaf))
         ]
