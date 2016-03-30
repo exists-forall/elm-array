@@ -21,14 +21,14 @@ This implementation is not and cannot be written entirely in Elm.  RRB-Trees int
 
 This repository currently includes a 100% API-compatible reimplementation of `Array`'s logic in Elm.  It is not yet ready for production use, but it captures all the essential features of the RRB-Tree.  With further testing, profiling, and cleanup, it will hopefully be usable as a better-than-ever replacement for `Array` in the not-too-distant future.
 
-To help the "exploratory" phase of the project, a temporary and inefficient `NaiveTable` module was introduced to stand in for the eventual native-Javascript `Table` module.  `NaiveTable` is written in Elm and makes use of linked lists to emulate true random-access arrays, giving the same semantics as a true `Table`, but with vastly worse performance.  Now that its API is mostly stabilized, `NaiveTable` will soon be replaced with a performant native-Javascript version.
+~~To help the "exploratory" phase of the project, a temporary and inefficient `NaiveTable` module was introduced to stand in for the eventual native-Javascript `Table` module.  `NaiveTable` is written in Elm and makes use of linked lists to emulate true random-access arrays, giving the same semantics as a true `Table`, but with vastly worse performance.  Now that its API is mostly stabilized, `NaiveTable` will soon be replaced with a performant native-Javascript version.~~
 
 ## Roadmap
 
 ### Well-defined tasks:
 
 - [X] Implement every function in the existing `Array` API
-- [ ] Reimplement `NaiveTable` in Javascript
+- [X] Reimplement `NaiveTable` in Javascript
 - [ ] Address every `TODO` comment in the codebase
 - [ ] Add justifications for every `assumeJust` call in the codebase, for use as both comments and potential error messages
 - [ ] For debug purposes: write a function to test if tree conforms to invariants, routinely call this function after every tree operation, and raise an error / log a warning if an invariant is broken.
