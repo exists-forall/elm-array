@@ -43,7 +43,7 @@ initialize' f count =
         then f i :: recurse (i + 1)
         else []
   in
-    recurse 0 |> Debug.log "Initialized"
+    recurse 0
 
 initialize : (Int -> a) -> Int -> Table a
 initialize f count =
@@ -153,7 +153,7 @@ splitAndRequireNonEmpty : Int -> List a -> Maybe (List a, List a)
 splitAndRequireNonEmpty size list =
   case ListUtils.splitAt size list of
     ([], _) -> Nothing
-    halves -> Just halves |> Debug.log "halves"
+    halves -> Just halves
 
 redistributeMany : Int -> Table (Table a) -> Table (Table a)
 redistributeMany size tables =
@@ -164,7 +164,6 @@ redistributeMany size tables =
   |> ControlUtils.whileJust (splitAndRequireNonEmpty size)
   |> List.map fromList
   |> fromList
-  |> Debug.log "Redistributed"
 
 append : Table a -> Table a -> Table a
 append (Table list1) (Table list2) =

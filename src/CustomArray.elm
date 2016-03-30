@@ -308,8 +308,6 @@ initialize len f =
         then Leaf (Table.initialize (\i -> f (i + startIndex)) (endIndex - startIndex))
         else
           let
-            _ = Debug.log "height" height
-            _ = Debug.log "bounds" (startIndex, endIndex)
             childLength = Bitwise.shiftLeft 1 (maximumBranchingPo2 * height)
             childCount = ceiling (toFloat (endIndex - startIndex) / toFloat childLength)
             childBounds i =
@@ -504,10 +502,10 @@ accumulateSearchError : Child a -> SearchErrorAnalysis -> SearchErrorAnalysis
 accumulateSearchError child prevAnalysis =
   let
     subarray = child.array
-    newIndex = Debug.log "index" <| prevAnalysis.index + 1
-    newShallowCount = Debug.log "totalShallowCount" <| prevAnalysis.totalShallowCount + shallowCount subarray
-    idealShallowCount = Debug.log "idealShallowCount" <| maximumBranching * (prevAnalysis.index + 1)
-    newSearchError = Debug.log "error" <| ceiling (toFloat (idealShallowCount - newShallowCount) / toFloat maximumBranching)
+    newIndex = prevAnalysis.index + 1
+    newShallowCount = prevAnalysis.totalShallowCount + shallowCount subarray
+    idealShallowCount = maximumBranching * (prevAnalysis.index + 1)
+    newSearchError = ceiling (toFloat (idealShallowCount - newShallowCount) / toFloat maximumBranching)
     newCrossing =
       isNewErrorCrossing
         (Maybe.map .searchError prevAnalysis.lastErrorCrossing)
@@ -621,7 +619,7 @@ redistributeChildren : (NodeData a, NodeData a) -> (Array a, Array a)
 redistributeChildren (node1, node2) =
   let
     firstWithRoom = Table.findIndex hasRoom node1.children
-    errorAnalysis = analyzeSearchError (node1, node2) |> Debug.log "errorAnalysis"
+    errorAnalysis = analyzeSearchError (node1, node2)
   in
     case (firstWithRoom, errorAnalysis.lastErrorCrossing |> Maybe.map .index) of
       (Just first, Just last) ->
@@ -634,7 +632,7 @@ redistributeChildren (node1, node2) =
           redistributed = redistributeSubarrays node1.height toRedistribute -- Table.redistributeMany maximumBranching toRedistribute
 
           getFromCombined i =
-            if Debug.log "i" i < first
+            if i < first
               then getFromOriginal i
               else
                 if i < first + Table.length redistributed
@@ -649,8 +647,6 @@ redistributeChildren (node1, node2) =
 
           toLeft = min maximumBranching totalCount
           toRight = totalCount - toLeft
-
-          _ = Debug.log "combined" (Table.initialize (getFromCombined >> assumeJust "") totalCount) 
 
           newLeftSubarrays = Table.initialize (getFromCombined >> assumeJust "") toLeft
           newRightSubarrays = Table.initialize (flip (+) toLeft >> getFromCombined >> assumeJust "") toRight
@@ -691,16 +687,16 @@ slice' startIndex endIndex array =
     let
       -- SHADOW startIndex and endIndex with their normalized versions, to
       -- prevent any accidental use of the unnormalized versions.
-      startIndex = Debug.log "startIndex" <| max startIndex 0
-      endIndex = Debug.log "endIndex" <| min endIndex (Debug.log "length" <| length array - 1)
+      startIndex = max startIndex 0
+      endIndex = min endIndex (length array - 1)
     in case array of
       Node node ->
         let
-          childSplitLeft = getChildContainingIndex startIndex node |> assumeJust "a" |> fst
-          childSplitRight = getChildContainingIndex endIndex node |> assumeJust "b" |> fst
+          childSplitLeft = getChildContainingIndex startIndex node |> assumeJust "" |> fst
+          childSplitRight = getChildContainingIndex endIndex node |> assumeJust "" |> fst
           getNewChildAt i =
             let
-              child = Table.get (i + childSplitLeft) node.children |> assumeJust "c"
+              child = Table.get (i + childSplitLeft) node.children |> assumeJust ""
               newChildArray = slice'
                 (startIndex - child.startIndex)
                 (endIndex - child.startIndex)
@@ -716,7 +712,7 @@ slice' startIndex endIndex array =
   
       Leaf leaf ->
         Table.initialize
-          (\i -> Table.get (i + startIndex) leaf |> assumeJust "d")
+          (\i -> Table.get (i + startIndex) leaf |> assumeJust "")
           (endIndex - startIndex + 1)
         |> Leaf
 
