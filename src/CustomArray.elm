@@ -26,7 +26,8 @@ module CustomArray
 
 import Bitwise
 
-import Table exposing (Table)
+--import Table exposing (Table)
+import NaiveTable as Table exposing (Table)
 import Assume exposing (assumeJust)
 import ListUtils
 import TupleUtils
@@ -70,13 +71,13 @@ type Array a
   | Leaf (Table a)
 
 maximumBranchingPo2 : Int
-maximumBranchingPo2 = 2 -- 5
+maximumBranchingPo2 = 5
 
 maximumBranching : Int
 maximumBranching = 2^maximumBranchingPo2 -- inclusive bound
 
 maximumSearchError : Int
-maximumSearchError = 1 -- 2
+maximumSearchError = 2
 
 empty : Array a
 empty = Leaf (Table.fromList [])
@@ -783,8 +784,14 @@ slice' startIndex endIndex array =
 
 slice : Int -> Int -> Array a -> Array a
 slice startIndex endIndex array =
-  slice' startIndex (endIndex - 1) array
-  |> drillPastSingleParents
+  let
+    convertNegativeIndex i =
+      if i < 0
+        then length array + i
+        else i
+  in
+    slice' (convertNegativeIndex startIndex) (convertNegativeIndex endIndex - 1) array
+    |> drillPastSingleParents
 
 drillPastSingleParents : Array a -> Array a
 drillPastSingleParents array =

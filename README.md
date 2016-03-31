@@ -36,6 +36,7 @@ This repository currently includes a 100% API-compatible reimplementation of `Ar
 ### Larger, open-ended tasks:
 
 - [ ] Test thoroughly, using at minimum the existing standard library unit tests
+    - [X] Pass all [core unit tests](https://github.com/elm-lang/core/blob/3.0.0/tests/Test/Array.elm)
 - [ ] Profile thoroughly, especially in comparison to...
     - [ ] The existing `Array` module (under conditions where it actually works)
     - [ ] Simpler, theoretically-less-performant data structure like `List`s and `Table`s, especially for small, common use cases

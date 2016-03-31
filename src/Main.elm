@@ -2,8 +2,6 @@ module Main where
 
 import Html exposing (Html)
 import CustomArray as Array exposing (Array)
+import PortedCoreTests
 
-main =
-  Array.fromList [0..50]
-  |> Array.slice 15 17
-  |> Array.visualize
+main = PortedCoreTests.tests
