@@ -26,8 +26,7 @@ module CustomArray
 
 import Bitwise
 
---import Table exposing (Table)
-import NaiveTable as Table exposing (Table)
+import Table exposing (Table)
 import Assume exposing (assumeJust)
 import ListUtils
 import TupleUtils

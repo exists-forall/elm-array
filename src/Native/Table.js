@@ -1,6 +1,5 @@
 Elm.Native.Table = {};
 Elm.Native.Table.make = function(localRuntime) {
-
     localRuntime.Native = localRuntime.Native || {};
     localRuntime.Native.Table = localRuntime.Native.Table || {};
     if (localRuntime.Native.Table.values)
@@ -93,6 +92,10 @@ Elm.Native.Table.make = function(localRuntime) {
 
     function initialize(f, len)
     {
+        if (len <= 0) {
+            return [];
+        }
+        
         var result = new Array(len);
 
         for (var i = 0; i < len; ++i)
@@ -162,7 +165,7 @@ Elm.Native.Table.make = function(localRuntime) {
     // TODO: This can definitely be rewritten in terms of initialize
     function append(table1, table2)
     {
-        return table.concat(table2);
+        return table1.concat(table2);
     }
 
     function get(i, table)
@@ -358,7 +361,7 @@ Elm.Native.Table.make = function(localRuntime) {
 
         length: length,
 
-        map: map,
+        map: F2(map),
         foldl: F3(foldl),
         foldr: F3(foldr),
         mapAccumL: F3(mapAccumL),
