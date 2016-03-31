@@ -19,9 +19,7 @@ This implementation is not and cannot be written entirely in Elm.  RRB-Trees int
 
 ## Current status
 
-This repository currently includes a 100% API-compatible reimplementation of `Array`'s logic in Elm.  It is not yet ready for production use, but it captures all the essential features of the RRB-Tree.  With further testing, profiling, and cleanup, it will hopefully be usable as a better-than-ever replacement for `Array` in the not-too-distant future.
-
-~~To help the "exploratory" phase of the project, a temporary and inefficient `NaiveTable` module was introduced to stand in for the eventual native-Javascript `Table` module.  `NaiveTable` is written in Elm and makes use of linked lists to emulate true random-access arrays, giving the same semantics as a true `Table`, but with vastly worse performance.  Now that its API is mostly stabilized, `NaiveTable` will soon be replaced with a performant native-Javascript version.~~
+This repository currently includes a 100% API-compatible reimplementation of `Array`'s logic in Elm, which passes all [core unit tests](https://github.com/elm-lang/core/blob/3.0.0/tests/Test/Array.elm).  It is not yet ready for production use, but it captures all the essential features of the RRB-Tree.  With further testing, profiling, and cleanup, it will hopefully be usable as a better-than-ever replacement for `Array` in the not-too-distant future.
 
 ## Roadmap
 
@@ -37,7 +35,8 @@ This repository currently includes a 100% API-compatible reimplementation of `Ar
 
 - [ ] Test thoroughly, using at minimum the existing standard library unit tests
     - [X] Pass all [core unit tests](https://github.com/elm-lang/core/blob/3.0.0/tests/Test/Array.elm)
-- [ ] Profile thoroughly, especially in comparison to...
+    - [ ] Demonstrate that the new `Array` module does not reproduce the [bugs of the current `Array` module](https://github.com/elm-lang/core/issues?utf8=✓&q=is%3Aissue+is%3Aopen+arrays)
+- [ ] Profile and benchmark thoroughly, especially in comparison to...
     - [ ] The existing `Array` module (under conditions where it actually works)
     - [ ] Simpler, theoretically-less-performant data structure like `List`s and `Table`s, especially for small, common use cases
     - [ ] Simpler tree-based persistent array structures
